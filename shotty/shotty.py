@@ -62,9 +62,7 @@ def snapshots():
 def list_snapshots(project, list_all, instance):
     "List EC2 snapshots"
     
-    #fixme
     instances = filter_instances(project, instance)
-
 
     for i in instances:
         for v in i.volumes.all():
@@ -126,6 +124,8 @@ def instances():
 def create_snapshots(project, force, instance):
     "Create snapshots for EC2 instances"
 
+    restart = False
+
     if project == None and instance == None and force == False:
         print("Error, either set the project with the --project option or")
         print("  set the specific instance with the --instance option or")
@@ -135,12 +135,14 @@ def create_snapshots(project, force, instance):
     instances = filter_instances(project, instance)
 
     for i in instances:
-
-        print("Stopping {0}...".format(i.id))
         
-        i.stop()
-        #use EC2 waiter, will poll every 15 seconds until stopped
-        i.wait_until_stopped()
+        #check if running or starting up and only shut down if in this case
+        if i.state['Name'] == 'running' or i.state['Name'] == 'pending':
+            print("Stopping {0}...".format(i.id))
+            i.stop()
+            restart = True
+            #use EC2 waiter, will poll every 15 seconds until stopped
+            i.wait_until_stopped()
         
         for v in i.volumes.all():
             if has_pending_snapshot(v):
@@ -153,12 +155,14 @@ def create_snapshots(project, force, instance):
             except botocore.exceptions.ClientError as e:
                 print("  Could not create snapshot {0}. ".format(i.id) + str(e))
                 continue
-        
-        print("Starting {0}...".format(i.id))
-        i.start()
-        #assuming that it is ideal to do one snapshot at a time to minimize
-        #downtime impact of servers, wait until running before going on to next
-        i.wait_until_running()
+
+        #only restart if previous state was running or starting
+        if restart:
+            print("Starting {0}...".format(i.id))
+            i.start()
+            #assuming that it is ideal to do one snapshot at a time to minimize
+            #downtime impact of servers, wait until running before going on to next
+            i.wait_until_running()
 
     print("Job done")
 
@@ -184,7 +188,6 @@ def list_instances(project,instance):
         print(', '.join((
             i.id,
             i.instance_type,
-            i.public_ip_address,
             i.placement['AvailabilityZone'],
             i.state['Name'],
             i.public_dns_name,
