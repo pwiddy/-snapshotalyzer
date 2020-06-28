@@ -135,7 +135,11 @@ def create_snapshots(project, force):
                 continue
 
             print("   Creating snapshot of {0}".format(v.id))
-            v.create_snapshot(Description="Created by Snapshotalyzer")
+            try:
+                v.create_snapshot(Description="Created by Snapshotalyzer")
+            except botocore.exceptions.ClientError as e:
+                print("  Could not create snapshot {0}. ".format(i.id) + str(e))
+                continue
         
         print("Starting {0}...".format(i.id))
         i.start()
