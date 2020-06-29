@@ -17,7 +17,8 @@ shotty uses the configuration file created by the AWS cli. e.g.
 `pipenv run "python shotty/shotty.py <command> <subcommand>
 <--project=PROJECT>"`
 
-*option* --profile is an option that can be set to use a speific AWS profile
+*option* --profile is an option that can be set to use a specific AWS profile
+*option* --region is an option that can be set to use a specific AWS region
 *command* is instances, volumes, or snapshots
 *subcommand* - depends on command
 *project* is optional

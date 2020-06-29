@@ -2,7 +2,7 @@ import boto3
 import botocore
 import click
 
-#default profile settings, can be overwritten with the --profile option
+#default profile settings, will be overwritten with the --profile option
 session = boto3.Session(profile_name='snapshotalyzer')
 ec2 = session.resource('ec2')
 
@@ -34,14 +34,18 @@ def has_pending_snapshot(volume):
 @click.group()
 @click.option('--profile', default=None,
         help="Set the AWS profile name to use, otherwise will default to snapshotalyzer")
-def cli(profile):
+@click.option('--region', default=None,
+        help="Set the AWS region name to use, otherwise will use the default from the profile in use")
+def cli(profile, region):
     """Shotty manages snapshots"""
+    global session
+    global ec2
     try:
         if profile == None:
-            session = boto3.Session(profile_name='snapshotalyzer')
+            session = boto3.Session(profile_name='snapshotalyzer', region_name=region)
             ec2 = session.resource('ec2')
         else:
-            session = boto3.Session(profile_name=profile)
+            session = boto3.Session(profile_name=profile, region_name=region)
             ec2 = session.resource('ec2')
     except botocore.exceptions.ProfileNotFound as e:
         print(" Could not set profile. " +str(e))
